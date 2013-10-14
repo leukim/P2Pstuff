@@ -7,8 +7,15 @@
 #include <stdio.h>
 #include <string.h>
 #include "structures.h"
+#include "data.h"
 
-uint32_t CURRENT_MSG = 0;
+void print_debug(const char * msg) {
+	if (DEBUG) {
+		printf("DBG: ");
+		printf("%s", msg);
+		printf("\n");
+	}
+}
 
 void ip_hex_to_dec(uint32_t * ip, int * b1, int * b2, int * b3, int * b4) {
     *b1 = (int) (*ip & 0xff);
@@ -17,17 +24,31 @@ void ip_hex_to_dec(uint32_t * ip, int * b1, int * b2, int * b3, int * b4) {
     *b4 = (int) ((*ip >> 24) & 0xff);
 }
 
-void print_header(struct P2P_h h) {
-    int b1, b2, b3, b4;
-    ip_hex_to_dec(&h.org_ip, &b1, &b2, &b3, &b4);
-    printf("\tVersion:\t%x\n", h.version);
-    printf("\tTTL:\t\t%x\n", h.ttl);
-    printf("\tMSG:\t\t0x0%x\n", h.msg_type);
-    printf("\tRES:\t\t%x\n", h.reserved);
-    printf("\tSND PORT:\t%d\n", h.org_port);
-    printf("\tLEN:\t\t%d\n", h.length);
-    printf("\tIP:\t\t%d.%d.%d.%d (0x%x)\n", b1, b2, b3, b4, h.org_ip);
-    printf("\tMSGID:\t\t0x%x\n", h.msg_id);
+void print_header_inner(struct P2P_h * h, int complete) {
+	if (complete == 0) {
+		printf("\tMSG:\t\t0x0%x\n", h->msg_type);
+		printf("\tLEN:\t\t%d\n", h->length);
+		printf("\tMSGID:\t\t0x%x\n", h->msg_id);
+	} else {
+		int b1, b2, b3, b4;
+		ip_hex_to_dec(&h->org_ip, &b1, &b2, &b3, &b4);
+		printf("\tVersion:\t%x\n", h->version);
+		printf("\tTTL:\t\t%x\n", h->ttl);
+		printf("\tMSG:\t\t0x0%x\n", h->msg_type);
+		printf("\tRES:\t\t%x\n", h->reserved);
+		printf("\tSND PORT:\t%d\n", h->org_port);
+		printf("\tLEN:\t\t%d\n", h->length);
+		printf("\tIP:\t\t%d.%d.%d.%d (0x%x)\n", b1, b2, b3, b4, h->org_ip);
+		printf("\tMSGID:\t\t0x%x\n", h->msg_id);
+	}
+}
+
+void print_header(struct P2P_h * h) {
+	print_header_inner(h, 1);
+}
+
+void print_header_simple(struct P2P_h *	 h) {
+	print_header_inner(h, 0);
 }
 
 void process_from_network(struct P2P_h * h) {
@@ -44,7 +65,13 @@ void process_to_network(struct P2P_h * h) {
     h->msg_id = htonl(h->msg_id);
 }
 
-uint32_t getMessageID(uint32_t my_ip, uint16_t my_port) {
+void print_header_to_network(struct P2P_h * h) {
+	process_from_network(h);
+	print_header_inner(h, 1);
+	process_to_network(h);
+}
+
+uint32_t getMessageID() {
     uint32_t temp = (uint32_t)my_port;
     CURRENT_MSG += 1;
     return ((my_ip ^ my_port) ^ (temp << 16)) + CURRENT_MSG;
@@ -56,9 +83,7 @@ uint32_t getMessageID(uint32_t my_ip, uint16_t my_port) {
 //                                                            *
 //*************************************************************
 
-int getBootstrapSocket(char * ip, char * port, uint16_t org_port) {
-    uint32_t org_ip  = 0x82E92937;
-    
+int getBootstrapSocket(char * ip, char * port) {
     struct addrinfo hints;
     struct addrinfo *res;  // will point to the results
     
@@ -91,54 +116,84 @@ int getBootstrapSocket(char * ip, char * port, uint16_t org_port) {
 //                                                            *
 //*************************************************************
 
-struct P2P_h getHeader(uint32_t org_ip, uint16_t org_port, uint8_t ttl, uint8_t msg_type, uint32_t msgid) {
+struct P2P_h getHeader(uint32_t org_ip, uint16_t org_port, uint8_t ttl, uint8_t msg_type, uint32_t msgid, uint16_t len) {
     struct P2P_h h;
     h.version = 0x1;
     h.ttl = ttl;
     h.msg_type = msg_type;
     h.reserved = 0x0;
-    h.org_port = org_port;
-    h.length = 0;
+    h.org_port = htons(org_port);
+    h.length = htons(len);
     h.org_ip = htonl(org_ip);
-    h.msg_id = msgid;
+    h.msg_id = htonl(msgid);
     return h;
 }
 
-struct P2P_join_request_packet createJoinRequest(uint32_t my_ip, uint16_t my_port) {
+////////////////////////////////////////////////////////////////////////
+
+void fillPongBody(struct P2P_pong_B_packet * p) {
+	// TODO For now we assume no neighours
+	memset(&p->body, 0, sizeof p->body);
+}
+
+void processPongBodyToNetwork(struct P2P_pong_B_packet * p) {
+	p->body.entry_size = htns(p->body.entry_size);
+	p->body.e1.ip = htnl(p->body.e1.ip);
+	p->body.e2.ip = htnl(p->body.e2.ip);
+	p->body.e3.ip = htnl(p->body.e3.ip);
+	p->body.e4.ip = htnl(p->body.e4.ip);
+	p->body.e5.ip = htnl(p->body.e5.ip);
+	p->body.e1.port = htns(p->body.e1.port);
+	p->body.e2.port = htns(p->body.e2.port);
+	p->body.e3.port = htns(p->body.e3.port);
+	p->body.e4.port = htns(p->body.e4.port);
+	p->body.e5.port = htns(p->body.e5.port);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+struct P2P_join_request_packet createJoinRequest() {
     struct P2P_join_request_packet p;
-    p.header = getHeader(my_ip, my_port, MAX_TTL, MSG_JOIN, getMessageID(my_ip, my_port));
+    p.header = getHeader(my_ip, my_port, MAX_TTL, MSG_JOIN, getMessageID(), NO_BODY);
     return p;
 }
 
-struct P2P_join_response_packet createJoinResponse(uint32_t my_ip, uint16_t my_port, uint32_t msgid) {
+struct P2P_join_response_packet createJoinResponse(uint32_t msgid) {
     struct P2P_join_response_packet p;
-    p.header = getHeader(my_ip, my_port, MAX_TTL, MSG_JOIN, msgid);
+    p.header = getHeader(my_ip, my_port, MAX_TTL, MSG_JOIN, msgid, 2);
     p.body.status = 0x0200;
     return p;
 }
 
-struct P2P_ping_packet createPingPacket_A(uint32_t my_ip, uint16_t my_port) {
+struct P2P_ping_packet createPingPacket_A() {
     struct P2P_ping_packet p;
-    p.header = getHeader(my_ip, my_port, 0x01, MSG_PING, getMessageID(my_ip, my_port));
+    p.header = getHeader(my_ip, my_port, 0x01, MSG_PING, getMessageID(), NO_BODY);
     return p;
 }
 
-//struct P2P_ping_packet createPingPacket_B(uint32_t my_ip, uint16_t my_port) {
-//    struct P2P_ping_packet p;
-//    p.header = getHeader(my_ip, my_port, 0x05, MSG_PING, getMessageID(my_ip, my_port));
-//    return p;
-//}
-
-struct P2P_pong_packet createPongPacket_A(uint32_t my_ip, uint16_t my_port, uint32_t msgid) {
-    struct P2P_pong_packet p;
-    p.header = getHeader(my_ip, my_port, 0x01, MSG_PONG, msgid);
-    memset(&p.body, 0, sizeof p.body);
+struct P2P_ping_packet createPingPacket_B() {
+    struct P2P_ping_packet p;
+    p.header = getHeader(my_ip, my_port, MAX_TTL, MSG_PING, getMessageID(), NO_BODY);
     return p;
 }
 
-struct P2P_bye_packet createByePacket(uint32_t my_ip, uint32_t my_port) {
+struct P2P_pong_A_packet createPongPacket_A(uint32_t msgid) {
+    struct P2P_pong_A_packet p;
+    p.header = getHeader(my_ip, my_port, 0x01, MSG_PONG, msgid, NO_BODY);
+    return p;
+}
+
+struct P2P_pong_B_packet createPongPacket_B(uint32_t msgid) {
+    struct P2P_pong_A_packet p;
+    p.header = getHeader(my_ip, my_port, 0x01, MSG_PONG, msgid, NO_BODY);
+    fillPongBody(&p);
+    processPongBodyToNetwork(&p);
+    return p;
+}
+
+struct P2P_bye_packet createByePacket() {
     struct P2P_bye_packet p;
-    p.header = getHeader(my_ip, my_port, MAX_TTL, MSG_BYE, getMessageID(my_ip, my_port));
+    p.header = getHeader(my_ip, my_port, MAX_TTL, MSG_BYE, getMessageID(), NO_BODY);
     return p;
 }
 

@@ -1,6 +1,11 @@
 #ifndef P2P_structures
 #define P2P_structures
 
+#define PROGRAM_STOP 0
+#define PROGRAM_RUN 1
+
+//////////////////////////////////////////////////////////
+
 #include "T-110_5150_reference_c_header.h"
 
 struct P2P_pong {
@@ -18,7 +23,11 @@ struct P2P_ping_packet {
     struct P2P_h header;
 };
 
-struct P2P_pong_packet {
+struct P2P_pong_A_packet {
+    struct P2P_h header;
+};
+
+struct P2P_pong_B_packet {
     struct P2P_h header;
     struct P2P_pong body;
 };
