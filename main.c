@@ -53,8 +53,13 @@ int main() {
 	struct P2P_bye_packet bye = createByePacket();
 	//print_header(&bye.header);
 	process_to_network(&bye.header);
-	bytes_sent = send(sockets[0], (void *)&bye, 16, 0);
-	/**/print_debug("BYE ->");
+	int i = 0;
+	for (i = 0; i < MAX_PEERS; i++) {
+		if (sockets[i] != -1) {
+			bytes_sent = send(sockets[i], (void *)&bye, 16, 0);
+			debug_message_to("BYE", i);
+		}
+	}
 	if (bytes_sent == 16) print_debug("Program terminated successfully. Bye.");
     return 0;
 }

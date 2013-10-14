@@ -8,6 +8,7 @@
 #include <string.h>
 #include "structures.h"
 #include "data.h"
+#include <sys/fcntl.h>
 
 void print_debug(const char * msg) {
 	if (DEBUG) {
@@ -118,6 +119,9 @@ int getBootstrapSocket(char * ip, char * port) {
     if (sockfd == -1) printf("Socket error\n");
     bind(sockfd, res->ai_addr, res->ai_addrlen);
     connect(sockfd, res->ai_addr, res->ai_addrlen);
+    
+    unsigned int flags = fcntl(sockfd, F_GETFL, 0);
+    fcntl(sockfd, F_SETFL, flags|O_NDELAY);
     
     return sockfd;
 }
