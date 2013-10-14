@@ -69,7 +69,7 @@ struct P2P_pong_front {
 
 /* The structure of each entry in Pong body */
 struct P2P_pong_entry {
-    struct in_addr ip;
+    uint32_t       ip; // MODIFIED
     uint16_t       port;
     uint16_t       sbz;
 };

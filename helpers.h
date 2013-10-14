@@ -17,6 +17,18 @@ void print_debug(const char * msg) {
 	}
 }
 
+void debug_message_to(const char * msg, int socket) {
+	if (DEBUG) {
+		printf("DBG: %s --> %d\n", msg, socket);
+	}
+}
+
+void debug_message_from(const char * msg, int socket) {
+	if (DEBUG) {
+		printf("DBG:\t\t\t%s <-- %d\n", msg, socket);
+	}
+}
+
 void ip_hex_to_dec(uint32_t * ip, int * b1, int * b2, int * b3, int * b4) {
     *b1 = (int) (*ip & 0xff);
     *b2 = (int) ((*ip >> 8) & 0xff);
@@ -137,17 +149,17 @@ void fillPongBody(struct P2P_pong_B_packet * p) {
 }
 
 void processPongBodyToNetwork(struct P2P_pong_B_packet * p) {
-	p->body.entry_size = htns(p->body.entry_size);
-	p->body.e1.ip = htnl(p->body.e1.ip);
-	p->body.e2.ip = htnl(p->body.e2.ip);
-	p->body.e3.ip = htnl(p->body.e3.ip);
-	p->body.e4.ip = htnl(p->body.e4.ip);
-	p->body.e5.ip = htnl(p->body.e5.ip);
-	p->body.e1.port = htns(p->body.e1.port);
-	p->body.e2.port = htns(p->body.e2.port);
-	p->body.e3.port = htns(p->body.e3.port);
-	p->body.e4.port = htns(p->body.e4.port);
-	p->body.e5.port = htns(p->body.e5.port);
+	p->body.front.entry_size = htons(p->body.front.entry_size);
+	p->body.e1.ip = htonl(p->body.e1.ip);
+	p->body.e2.ip = htonl(p->body.e2.ip);
+	p->body.e3.ip = htonl(p->body.e3.ip);
+	p->body.e4.ip = htonl(p->body.e4.ip);
+	p->body.e5.ip = htonl(p->body.e5.ip);
+	p->body.e1.port = htons(p->body.e1.port);
+	p->body.e2.port = htons(p->body.e2.port);
+	p->body.e3.port = htons(p->body.e3.port);
+	p->body.e4.port = htons(p->body.e4.port);
+	p->body.e5.port = htons(p->body.e5.port);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -184,7 +196,7 @@ struct P2P_pong_A_packet createPongPacket_A(uint32_t msgid) {
 }
 
 struct P2P_pong_B_packet createPongPacket_B(uint32_t msgid) {
-    struct P2P_pong_A_packet p;
+    struct P2P_pong_B_packet p;
     p.header = getHeader(my_ip, my_port, 0x01, MSG_PONG, msgid, NO_BODY);
     fillPongBody(&p);
     processPongBodyToNetwork(&p);

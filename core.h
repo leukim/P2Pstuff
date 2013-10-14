@@ -74,4 +74,25 @@ void recievePacket(int socket) {
 	}
 }
 
+void *sendPings() {
+	int i = 0;
+	while (1) {
+		if (sockets[i] != -1) {
+			struct P2P_ping_packet p = createPingPacket_A();
+			bytes_sent = send(sockets[i], (void *)&p, 16, 0);
+			//print_debug("PING:A ->");
+			debug_message_to("PING:A", i);
+		}
+		i += 1;
+		if (i >= MAX_PEERS) {
+			i = 0;
+			sleep(5);
+		}
+	} 
+}
+
+//~ void *listenConnections() {
+	//~ 
+//~ }
+
 #endif

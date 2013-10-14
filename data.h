@@ -21,4 +21,8 @@ int bytes_recv = 0;
 
 uint32_t CURRENT_MSG = 0;
 
+#define MAX_PEERS 5
+
+int sockets[MAX_PEERS];
+
 #endif
