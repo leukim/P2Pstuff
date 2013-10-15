@@ -90,6 +90,14 @@ uint32_t getMessageID() {
     return ((my_ip ^ my_port) ^ (temp << 16)) + CURRENT_MSG;
 }
 
+int newPeerID() {
+	int i = 0;
+	for(i = 0; i < MAX_PEERS; ++i) {
+		if (sockets[i] == -1) return i;
+	}
+	return -1;
+}
+
 //*************************************************************
 //                                                            *
 //                      BOOTSTRAPPING                         *
@@ -119,6 +127,33 @@ int getBootstrapSocket(char * ip, char * port) {
     if (sockfd == -1) printf("Socket error\n");
     bind(sockfd, res->ai_addr, res->ai_addrlen);
     connect(sockfd, res->ai_addr, res->ai_addrlen);
+    
+    unsigned int flags = fcntl(sockfd, F_GETFL, 0);
+    fcntl(sockfd, F_SETFL, flags|O_NDELAY);
+    
+    return sockfd;
+}
+
+int getListenSocket() {
+	struct addrinfo hints;
+    struct addrinfo *res;  // will point to the results
+    
+    //Fill server info
+    memset(&hints, 0, sizeof hints); // make sure the struct is empty
+    hints.ai_family = AF_UNSPEC;     // don't care IPv4 or IPv6
+    hints.ai_socktype = SOCK_STREAM; // TCP stream sockets
+    hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
+
+    int status = getaddrinfo(NULL, "12345", &hints, &res);
+    if (status != 0) {
+        fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+        return -1;
+    }
+    
+    //Create socket
+    int sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (sockfd == -1) printf("Socket error\n");
+    bind(sockfd, res->ai_addr, res->ai_addrlen);
     
     unsigned int flags = fcntl(sockfd, F_GETFL, 0);
     fcntl(sockfd, F_SETFL, flags|O_NDELAY);
@@ -179,7 +214,7 @@ struct P2P_join_request_packet createJoinRequest() {
 struct P2P_join_response_packet createJoinResponse(uint32_t msgid) {
     struct P2P_join_response_packet p;
     p.header = getHeader(my_ip, my_port, MAX_TTL, MSG_JOIN, msgid, 2);
-    p.body.status = 0x0200;
+    p.body.status = htons(0x0200);
     return p;
 }
 

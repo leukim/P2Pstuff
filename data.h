@@ -12,6 +12,8 @@ uint16_t my_port = 12345;
 // Hardcoded data of the bootstrap server
 char * bootstrap_ip = "130.233.43.39";
 char * bootstrap_port = "8317";
+uint32_t bootstrap_ip_hex = 0x82e92b27;
+uint16_t bootstrap_port_hex = 8317;
 
 // Internal state data
 int STATE = PROGRAM_RUN;

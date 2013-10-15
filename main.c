@@ -30,8 +30,8 @@ int main() {
 	
     // Bootstrap socket to the server
     sockets[0] = getBootstrapSocket(bootstrap_ip, bootstrap_port);
-    peers[0].ip = bootstrap_ip;
-    peers[0].port =  bootstrap_port;
+    peers[0].ip = bootstrap_ip_hex;
+    peers[0].port =  bootstrap_port_hex;
     peers[0].missed_pings = 0;
     peers[0].status = PEER_JOIN_PENDING;
     

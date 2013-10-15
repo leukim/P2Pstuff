@@ -38,11 +38,19 @@ void processPacket(int socket, struct P2P_h header, int id) {
 			break;
 		case MSG_BYE:
 			debug_message_from("BYE", id);
+			peers[id].status = PEER_OFFLINE;
+			sockets[id] = -1;
 			break;
 		case MSG_JOIN:
 			if (header.length == 0) { // JOIN REQUEST
 				// TODO process join request
 				debug_message_from("JOIN:REQ", id);
+				peers[id].ip = header.org_ip;
+				peers[id].port = header.org_port;
+				peers[id].status = PEER_OK;
+				struct P2P_join_response_packet response = createJoinResponse(header.msg_id);
+				bytes_sent = send(socket, (void *)&response, 18, 0);
+				debug_message_to("JOIN:RES (OK)", id);
 			} else if (header.length == 2) { // JOIN RESPONSE
 				debug_message_from("JOIN:RES", id);
 				struct P2P_join_response_packet join_response;
@@ -109,8 +117,30 @@ void *sendPings() {
 	} 
 }
 
-//~ void *listenConnections() {
-	//~ 
-//~ }
+void *listenConnections() {
+	int listen_socket = getListenSocket();
+	
+	if(listen(listen_socket, 5) < 0) {
+		printf("!!! Error on listen socket!");
+	}
+	
+	struct sockaddr_storage their_addr;
+    socklen_t addr_size;
+    addr_size = sizeof their_addr;
+	
+	while(STATE != PROGRAM_STOP) {
+		int new_socket = accept(listen_socket, (struct sockaddr *)&their_addr, &addr_size);
+		if (new_socket != -1) {
+			int new_id = newPeerID();
+			if (new_id != -1) {
+				sockets[new_id] = new_socket;
+				peers[new_id].status = PEER_JOIN_PENDING;
+				peers[new_id].missed_pings = 0;
+			} else {
+				close(new_socket);
+			}
+		}
+	}
+}
 
 #endif

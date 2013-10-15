@@ -1,6 +1,8 @@
 #ifndef P2P_structures
 #define P2P_structures
 
+#include "T-110_5150_reference_c_header.h"
+
 #define PROGRAM_STOP 0
 #define PROGRAM_RUN 1
 
@@ -9,15 +11,13 @@
 #define PEER_OFFLINE 2
 
 struct P2P_client_info {
-	char * ip;
-	char * port;
+	uint32_t ip;
+	uint16_t port;
 	int status;
 	int missed_pings;
 };
 
 //////////////////////////////////////////////////////////
-
-#include "T-110_5150_reference_c_header.h"
 
 struct P2P_pong {
     struct P2P_pong_front front;
