@@ -15,19 +15,26 @@ void processPacket(int socket, struct P2P_h header, int id) {
 				debug_message_from("PING:A", id);
 				// Reply with PONG:A
 				struct P2P_pong_A_packet reply = createPongPacket_A(header.msg_id);
-				bytes_sent = send(socket, (void *)&reply, 16, 0); // MAYBE should set to nonblocking and forget about it...
-				if (bytes_sent != 16) { 
-					print_debug("!!! Error sending Pong.");
-				} else {
-					debug_message_to("PONG:A", id);
-				}
+				bytes_sent = send(socket, (void *)&reply, 16, 0);
+				debug_message_to("PONG:A", id);
 			} else {
 				debug_message_from("PING:B",id);
 				//Reply with PONG:B
+				struct P2P_pong_B_packet reply = createPongPacket_B(header.msg_id);
+				bytes_sent = send(socket, (void *)&reply, sizeof reply, 0);
+				debug_message_to("PONG:B", id);
+				//print_header_to_network(&reply.header);
 			}
 			break;
 		case MSG_PONG:
-			debug_message_from("PONG:?", id);
+			if (header.ttl == 1) {
+				peers[id].missed_pings -= 1;
+				char message[25];
+				sprintf(&message[0], "PONG:A (%d)", peers[id].missed_pings);
+				debug_message_from(&message[0], id);
+			} else {
+				debug_message_from("PONG:B", id);
+			}
 			break;
 		case MSG_BYE:
 			debug_message_from("BYE", id);
@@ -44,6 +51,7 @@ void processPacket(int socket, struct P2P_h header, int id) {
 					if (join_response.body.status == 0x0200) {
 						// Actually do sth!
 						debug_message_from("Join request accepted", id);
+						peers[id].status = PEER_OK;
 					} else {
 						// Maybe do sth as well?
 						print_debug("\t\t\t   Unknown status code.");
@@ -85,11 +93,13 @@ void *recievePacket() {
 void *sendPings() {
 	int i = 0;
 	while (STATE != PROGRAM_STOP) {
-		if (sockets[i] != -1) {
+		if (sockets[i] != -1 && peers[i].status == PEER_OK) {
 			struct P2P_ping_packet p = createPingPacket_A();
 			bytes_sent = send(sockets[i], (void *)&p, 16, 0);
-			//print_debug("PING:A ->");
-			debug_message_to("PING:A", i);
+			peers[i].missed_pings += 1;
+			char message[25];
+			sprintf(&message[0], "PING:A (%d)", peers[i].missed_pings);
+			debug_message_to(&message[0], i);
 		}
 		i += 1;
 		if (i >= MAX_PEERS) {

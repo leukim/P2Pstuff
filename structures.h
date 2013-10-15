@@ -4,6 +4,17 @@
 #define PROGRAM_STOP 0
 #define PROGRAM_RUN 1
 
+#define PEER_OK 0
+#define PEER_JOIN_PENDING 1
+#define PEER_OFFLINE 2
+
+struct P2P_client_info {
+	char * ip;
+	char * port;
+	int status;
+	int missed_pings;
+};
+
 //////////////////////////////////////////////////////////
 
 #include "T-110_5150_reference_c_header.h"

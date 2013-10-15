@@ -25,4 +25,6 @@ uint32_t CURRENT_MSG = 0;
 
 int sockets[MAX_PEERS];
 
+struct P2P_client_info peers[MAX_PEERS];
+
 #endif

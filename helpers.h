@@ -150,6 +150,8 @@ struct P2P_h getHeader(uint32_t org_ip, uint16_t org_port, uint8_t ttl, uint8_t 
 void fillPongBody(struct P2P_pong_B_packet * p) {
 	// TODO For now we assume no neighours
 	memset(&p->body, 0, sizeof p->body);
+	// Set header length!
+	p->header.length = htons(4); // For now, because it is empty.
 }
 
 void processPongBodyToNetwork(struct P2P_pong_B_packet * p) {
@@ -201,7 +203,7 @@ struct P2P_pong_A_packet createPongPacket_A(uint32_t msgid) {
 
 struct P2P_pong_B_packet createPongPacket_B(uint32_t msgid) {
     struct P2P_pong_B_packet p;
-    p.header = getHeader(my_ip, my_port, 0x01, MSG_PONG, msgid, NO_BODY);
+    p.header = getHeader(my_ip, my_port, MAX_TTL, MSG_PONG, msgid, NO_BODY);
     fillPongBody(&p);
     processPongBodyToNetwork(&p);
     return p;
