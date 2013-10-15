@@ -7,8 +7,10 @@
 #include "data.h"
 
 void processPacket(int socket, struct P2P_h header, int id) {
+	//print_header(&header);
 	process_from_network(&header);
-		
+	//print_header(&header);
+	
 	switch (header.msg_type) {
 		case MSG_PING:
 			if (header.ttl == 1) {
@@ -51,6 +53,9 @@ void processPacket(int socket, struct P2P_h header, int id) {
 				struct P2P_join_response_packet response = createJoinResponse(header.msg_id);
 				bytes_sent = send(socket, (void *)&response, 18, 0);
 				debug_message_to("JOIN:RES (OK)", id);
+				int b1, b2, b3, b4;
+				ip_hex_to_dec(&peers[id].ip, &b1, &b2, &b3, &b4);
+				if (DEBUG != 0) printf("DBG:\t\t\tNew peer: %d.%d.%d.%d:%d\n", b1, b2, b3, b4, peers[id].port);
 			} else if (header.length == 2) { // JOIN RESPONSE
 				debug_message_from("JOIN:RES", id);
 				struct P2P_join_response_packet join_response;
@@ -124,19 +129,31 @@ void *listenConnections() {
 		printf("!!! Error on listen socket!");
 	}
 	
+	//print_debug("Listening...\n");
+	
 	struct sockaddr_storage their_addr;
     socklen_t addr_size;
     addr_size = sizeof their_addr;
+    void *addr;
 	
 	while(STATE != PROGRAM_STOP) {
 		int new_socket = accept(listen_socket, (struct sockaddr *)&their_addr, &addr_size);
 		if (new_socket != -1) {
+			struct sockaddr_in * caddr = ((struct sockaddr_in *)((struct sockaddr *)&their_addr));
+			addr = &(caddr->sin_addr);
+			char ipstr[INET6_ADDRSTRLEN];
+			inet_ntop(their_addr.ss_family, addr, ipstr, sizeof ipstr);
+			if (DEBUG != 0) printf("Connection from %s\n", ipstr);
+			
 			int new_id = newPeerID();
 			if (new_id != -1) {
+				if (DEBUG != 0) printf("DBG: New socket: %d\n", new_id);
 				sockets[new_id] = new_socket;
 				peers[new_id].status = PEER_JOIN_PENDING;
 				peers[new_id].missed_pings = 0;
+				strcpy(peers[new_id].stringip, ipstr);
 			} else {
+				debug_message_to("Closed connection", -1);
 				close(new_socket);
 			}
 		}

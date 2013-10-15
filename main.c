@@ -10,10 +10,29 @@
 #include <pthread.h>
 
 void sig_handler(int signo) {
-  if (signo == SIGINT) {
-	  print_debug("Interrupt signal caught: finishing connection.");
-	  STATE = PROGRAM_STOP;
-  }
+	if (signo == SIGINT) {
+		//print_debug("Interrupt signal caught: finishing connection.");
+		//STATE = PROGRAM_STOP;
+		DEBUG = 0;
+		int command = 1;
+		printf("\nApplication menu\n");
+		printf("-------------------------------------------------\n");
+		printf("1: Continue (do nothing)\n");
+		printf("0: Quit\n");
+		scanf("%d",&command);
+		switch(command) {
+			case 0:
+				STATE = PROGRAM_STOP;
+				break;
+			case 1:
+				break;
+			default:
+				printf("Unknown command.");
+		}
+		printf("Continuing...\n");
+		printf("-------------------------------------------------\n");
+		DEBUG = 1;
+	}
 }
 
 void init_peers() {
@@ -45,12 +64,14 @@ int main() {
     }
     /**/print_debug("JOIN:REQ ->");
     
-    pthread_t threads[1];
+    pthread_t threads[2];
     int rc = pthread_create(&threads[0], NULL, sendPings, NULL);
+    int rc2 = pthread_create(&threads[1], NULL, listenConnections, NULL);
+    int rc3 = pthread_create(&threads[1], NULL, recievePacket, NULL);
     
     // Main program loop
     while(STATE != PROGRAM_STOP) {
-		recievePacket(sockets[0]);
+		
 	}
 	
     //Send bye packet!

@@ -67,14 +67,14 @@ void print_header_simple(struct P2P_h *	 h) {
 void process_from_network(struct P2P_h * h) {
     h->org_port = ntohs(h->org_port);
     h->length = ntohs(h->length);
-    h->org_ip = ntohl(h->org_ip);
+    //h->org_ip = ntohl(h->org_ip);
     h->msg_id = ntohl(h->msg_id);
 }
 
 void process_to_network(struct P2P_h * h) {
     h->org_port = htons(h->org_port);
     h->length = htons(h->length);
-    h->org_ip = htonl(h->org_ip);
+    //h->org_ip = htonl(h->org_ip);
     h->msg_id = htonl(h->msg_id);
 }
 
@@ -127,7 +127,7 @@ int getBootstrapSocket(char * ip, char * port) {
     if (sockfd == -1) printf("Socket error\n");
     bind(sockfd, res->ai_addr, res->ai_addrlen);
     connect(sockfd, res->ai_addr, res->ai_addrlen);
-    
+
     unsigned int flags = fcntl(sockfd, F_GETFL, 0);
     fcntl(sockfd, F_SETFL, flags|O_NDELAY);
     

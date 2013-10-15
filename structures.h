@@ -11,6 +11,7 @@
 #define PEER_OFFLINE 2
 
 struct P2P_client_info {
+	char stringip[INET6_ADDRSTRLEN];
 	uint32_t ip;
 	uint16_t port;
 	int status;

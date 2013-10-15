@@ -1,12 +1,12 @@
 #ifndef P2P_DATA
 #define P2P_DATA
 
-#define DEBUG 1
+int DEBUG = 1;
 
 #define NO_BODY 0
 
 // Own data
-uint32_t my_ip  = 0x82E92937;
+uint32_t my_ip  = 0x56328386;
 uint16_t my_port = 12345;
 
 // Hardcoded data of the bootstrap server
