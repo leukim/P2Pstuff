@@ -2,21 +2,7 @@
 #define P2P_structures
 
 #include "T-110_5150_reference_c_header.h"
-
-#define PROGRAM_STOP 0
-#define PROGRAM_RUN 1
-
-#define PEER_OK 0
-#define PEER_JOIN_PENDING 1
-#define PEER_OFFLINE 2
-
-struct P2P_client_info {
-	char stringip[INET6_ADDRSTRLEN];
-	uint32_t ip;
-	uint16_t port;
-	int status;
-	int missed_pings;
-};
+#include "data.h"
 
 //////////////////////////////////////////////////////////
 
@@ -27,6 +13,26 @@ struct P2P_pong {
     struct P2P_pong_entry e3;
     struct P2P_pong_entry e4;
     struct P2P_pong_entry e5;
+};
+
+struct P2P_query {
+	char criteria[MAX_QUERY_LEN];
+};
+
+struct P2P_qhit_front {
+	uint16_t size;
+	uint16_t sbz;
+};
+
+struct P2P_qhit_entry {
+	uint16_t id;
+	uint16_t sbz;
+	uint32_t value;
+};
+
+struct P2P_qhit {
+	struct P2P_qhit_front front;
+	struct P2P_qhit_entry entries[MAX_QHIT_ENTRIES];
 };
 
 //////////////////////////////////////////////////////////
@@ -51,6 +57,16 @@ struct P2P_join_request_packet {
 struct P2P_join_response_packet {
     struct P2P_h header;
     struct P2P_join body;
+};
+
+struct P2P_query_packet {
+	struct P2P_h header;
+	struct P2P_query body;
+};
+
+struct P2P_query_hit_packet {
+	struct P2P_h header;
+	struct P2P_qhit body;
 };
 
 struct P2P_bye_packet {

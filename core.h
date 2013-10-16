@@ -79,6 +79,11 @@ void processPacket(int socket, struct P2P_h header, int id) {
 			break;
 		case MSG_QHIT:
 			debug_message_from("QHIT", id);
+			struct P2P_query_hit_packet qhit;
+			qhit.header = header;
+			bytes_recv = recv(socket, (void *)&qhit.body, header.length, 0);
+			processQHitbody(&qhit);
+			print_qhit(&qhit);
 			break;
 		default:
 			printf("!!! Unknown packet header:\n");

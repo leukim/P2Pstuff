@@ -10,6 +10,12 @@
 #include "data.h"
 #include <sys/fcntl.h>
 
+//*************************************************************
+//                                                            *
+//                  DEBUG & PRINT & STUFF                     *
+//                                                            *
+//*************************************************************
+
 void print_debug(const char * msg) {
 	if (DEBUG) {
 		printf("DBG: ");
@@ -83,6 +89,56 @@ void print_header_to_network(struct P2P_h * h) {
 	print_header_inner(h, 1);
 	process_to_network(h);
 }
+
+void print_qhit(struct P2P_query_hit_packet * p) {
+	printf("Query hit:\n");
+	printf("Header:\n");
+	print_header(&p->header);
+	printf("Body:\n");
+	printf("\tSize:\t\t%d\n", p->body.front.size);
+	int i = 0;
+	for (i = 0; i < p->body.front.size; ++i) {
+		printf("\tID[%d]:\t\t%x\n", i, p->body.entries[i].value);
+	}
+}
+
+int getHistorySlot() {
+	int i = 0;
+	for (i = 0; i < MAX_QUERY_HISTORY; ++i) {
+		if (query_history[i].status == SLOT_FREE) return i;
+	}
+	return -1;
+}
+
+void insertQueryHistory(struct P2P_query_packet * p, int from, int to) {
+	int slot = getHistorySlot();
+	if (slot == -1) {
+		print_debug("!!! Error getting history slot.");
+		return;
+	}
+	
+	query_history[slot].status = SLOT_PENDING;
+	strcpy(&query_history[slot].query[0], &p->body.criteria[0]);
+	query_history[slot].peer_from = from;
+	query_history[slot].peer_to = to;
+	query_history[slot].msgid = p->header.msg_id;
+}
+
+void processQHitbody(struct P2P_query_hit_packet * p) {
+	p->body.front.size = ntohs(p->body.front.size);
+	int i = 0;
+	for (i = 0; i < MAX_QHIT_ENTRIES; ++i) {
+		p->body.entries[i].id = htons(p->body.entries[i].id);
+		p->body.entries[i].value = htonl(p->body.entries[i].value);
+	}
+}
+
+//*************************************************************
+//                                                            *
+//                      GENERATORS                            *
+//                                                            *
+//*************************************************************
+
 
 uint32_t getMessageID() {
     uint32_t temp = (uint32_t)my_port;
@@ -242,6 +298,13 @@ struct P2P_pong_B_packet createPongPacket_B(uint32_t msgid) {
     fillPongBody(&p);
     processPongBodyToNetwork(&p);
     return p;
+}
+
+struct P2P_query_packet createQueryPacket(char * query) {
+	struct P2P_query_packet p;
+	p.header = getHeader(my_ip, my_port, MAX_TTL, MSG_QUERY, getMessageID(), strlen(query));
+	strcpy(&p.body.criteria[0], query);
+	return p;
 }
 
 struct P2P_bye_packet createByePacket() {

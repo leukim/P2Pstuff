@@ -18,18 +18,35 @@ void sig_handler(int signo) {
 		printf("\nApplication menu\n");
 		printf("-------------------------------------------------\n");
 		printf("1: Continue (do nothing)\n");
+		printf("2: Issue query\n");
 		printf("0: Quit\n");
+		printf("> ");
 		scanf("%d",&command);
 		switch(command) {
 			case 0:
 				STATE = PROGRAM_STOP;
 				break;
+			case 2:
+				printf("Enter query: ");
+				char query[MAX_QUERY_LEN];
+				scanf("%s", &query[0]);
+				struct P2P_query_packet query_packet = createQueryPacket(&query[0]);
+				int i = 0;
+				for (i = 0; i < MAX_PEERS; ++i) {
+					if (sockets[i] != -1 && peers[i].status == PEER_OK) {
+						bytes_sent = send(sockets[i], (void *)&query_packet, 16+strlen(&query[0]), 0);
+						DEBUG = 1;
+						insertQueryHistory(&query_packet, MYSELF, i);
+						debug_message_to("QUERY", i);
+					}
+				}
+				break;
 			case 1:
+				printf("Continuing...\n");
 				break;
 			default:
 				printf("Unknown command.");
 		}
-		printf("Continuing...\n");
 		printf("-------------------------------------------------\n");
 		DEBUG = 1;
 	}
@@ -44,6 +61,8 @@ void init_peers() {
 
 int main() {
 	signal(SIGINT, sig_handler);
+	
+	printf("Program started. Press Ctrl-C for menu.\n");
 	
 	init_peers();
 	
