@@ -23,7 +23,7 @@ int DEBUG = 1;
 #define PROGRAM_RUN 1
 
 // Own data
-uint32_t my_ip  = 0x56328386;
+uint32_t my_ip  = 0x56328b31;
 uint16_t my_port = 12345;
 
 // Hardcoded data of the bootstrap server
@@ -59,7 +59,7 @@ struct P2P_query_history {
 	int status;
 	char query[MAX_QUERY_LEN];
 	int peer_from; // Or MYSELF if own query
-	int peer_to; // Or MYSELF if own query
+	int peer_to;
 	uint32_t msgid;
 };
 

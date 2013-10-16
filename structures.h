@@ -8,11 +8,7 @@
 
 struct P2P_pong {
     struct P2P_pong_front front;
-    struct P2P_pong_entry e1;
-    struct P2P_pong_entry e2;
-    struct P2P_pong_entry e3;
-    struct P2P_pong_entry e4;
-    struct P2P_pong_entry e5;
+    struct P2P_pong_entry entries[5];
 };
 
 struct P2P_query {

@@ -11,6 +11,8 @@
 
 void sig_handler(int signo) {
 	if (signo == SIGINT) {
+		int new_id;
+		int sockfd;
 		//print_debug("Interrupt signal caught: finishing connection.");
 		//STATE = PROGRAM_STOP;
 		DEBUG = 0;
@@ -19,12 +21,18 @@ void sig_handler(int signo) {
 		printf("-------------------------------------------------\n");
 		printf("1: Continue (do nothing)\n");
 		printf("2: Issue query\n");
+		printf("3: View query history\n");
+		printf("4: View peers info\n");
+		printf("5: Connect to new peer\n");            // THIS IS NOT WORKING YET
 		printf("0: Quit\n");
 		printf("> ");
 		scanf("%d",&command);
 		switch(command) {
 			case 0:
 				STATE = PROGRAM_STOP;
+				break;
+			case 1:
+				printf("Continuing...\n");
 				break;
 			case 2:
 				printf("Enter query: ");
@@ -34,15 +42,43 @@ void sig_handler(int signo) {
 				int i = 0;
 				for (i = 0; i < MAX_PEERS; ++i) {
 					if (sockets[i] != -1 && peers[i].status == PEER_OK) {
+						process_to_network(&query_packet.header);
 						bytes_sent = send(sockets[i], (void *)&query_packet, 16+strlen(&query[0]), 0);
 						DEBUG = 1;
 						insertQueryHistory(&query_packet, MYSELF, i);
 						debug_message_to("QUERY", i);
+						print_header_to_network(&query_packet.header);
 					}
 				}
 				break;
-			case 1:
-				printf("Continuing...\n");
+			case 3:
+				printQueryHistory();
+				break;
+			case 4:
+				printPeers();
+				break;
+			case 5:
+				new_id = newPeerID();
+				if (new_id == -1) {
+					printf("No available slots for peers.");
+				} else {
+					printf("Connecting to new peer:\n");
+					printf("Enter IP: ");
+					scanf("%s", &peers[new_id].stringip[0]);
+					// TODO Convert string IP to hex and save in struct
+					printf("Enter port: ");
+					scanf("%d", (int *)&peers[new_id].port);
+					
+					sockfd = getBootstrapSocket(&peers[new_id].stringip[0], &peers[new_id].stringip[0]);
+					
+					if (sockfd != -1) {
+						sockets[new_id] = sockfd;
+						peers[new_id].status = PEER_JOIN_PENDING;
+						printf("Connected successfully to %s:%d", &peers[new_id].stringip[0], peers[new_id].port);
+					} else {
+						printf("!!! Could not get socket to new client\n");
+					}					
+				}
 				break;
 			default:
 				printf("Unknown command.");
@@ -68,6 +104,7 @@ int main() {
 	
     // Bootstrap socket to the server
     sockets[0] = getBootstrapSocket(bootstrap_ip, bootstrap_port);
+    strcpy(&peers[0].stringip[0], bootstrap_ip);
     peers[0].ip = bootstrap_ip_hex;
     peers[0].port =  bootstrap_port_hex;
     peers[0].missed_pings = 0;

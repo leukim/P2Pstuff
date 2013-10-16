@@ -73,14 +73,14 @@ void print_header_simple(struct P2P_h *	 h) {
 void process_from_network(struct P2P_h * h) {
     h->org_port = ntohs(h->org_port);
     h->length = ntohs(h->length);
-    //h->org_ip = ntohl(h->org_ip);
+    h->org_ip = ntohl(h->org_ip);
     h->msg_id = ntohl(h->msg_id);
 }
 
 void process_to_network(struct P2P_h * h) {
     h->org_port = htons(h->org_port);
     h->length = htons(h->length);
-    //h->org_ip = htonl(h->org_ip);
+    h->org_ip = htonl(h->org_ip);
     h->msg_id = htonl(h->msg_id);
 }
 
@@ -130,6 +130,54 @@ void processQHitbody(struct P2P_query_hit_packet * p) {
 	for (i = 0; i < MAX_QHIT_ENTRIES; ++i) {
 		p->body.entries[i].id = htons(p->body.entries[i].id);
 		p->body.entries[i].value = htonl(p->body.entries[i].value);
+	}
+}
+
+void printQueryHistory() {
+	int nothing = 1;
+	int i = 0;
+	for (i = 0; i < MAX_QUERY_HISTORY; ++i) {
+		if (query_history[i].status == SLOT_PENDING) {
+			nothing = 0;
+			
+			printf("----QUERY SLOT %d----\n", i);
+			printf("Query: \"%s\"\n", &query_history[i].query[0]);
+			if (query_history[i].peer_from == MYSELF) {
+				printf("ME ---> %d\n", query_history[i].peer_to);
+			} else {
+				printf(" %d ---> %d\n", query_history[i].peer_from, query_history[i].peer_to);
+			}
+			printf("MSGID: %x\n", query_history[i].msgid);
+			printf("\n");
+		}
+	}
+	if (nothing) printf("No pending queries.\n");
+}
+
+void markQueryHit(struct P2P_query_hit_packet * p) {
+	int i = 0;
+	for (i = 0; i < MAX_QUERY_HISTORY; ++i) {
+		if (p->header.msg_id == query_history[i].msgid) {
+			query_history[i].status = SLOT_FREE;
+		}
+	}
+}
+
+void printPeers() {
+	int i = 0;
+	printf("---CLIENT INFO---\n\n");
+	for (i = 0; i < MAX_PEERS; ++i) {
+		if (sockets[i] != -1) {
+			printf("Client %d:\n", i);
+			if (peers[i].status == PEER_OK) {
+				printf("\tStatus: OK\n");
+			} else if (peers[i].status == PEER_JOIN_PENDING) {
+				printf("\tStatus:  P\n");
+			} else {
+				printf("\tStatus: ER\n");
+			}
+			printf("\tIP:  %s:%d (%x)\n\n", peers[i].stringip, peers[i].port, peers[i].ip);
+		}
 	}
 }
 
@@ -229,34 +277,39 @@ struct P2P_h getHeader(uint32_t org_ip, uint16_t org_port, uint8_t ttl, uint8_t 
     h.ttl = ttl;
     h.msg_type = msg_type;
     h.reserved = 0x0;
-    h.org_port = htons(org_port);
-    h.length = htons(len);
-    h.org_ip = htonl(org_ip);
-    h.msg_id = htonl(msgid);
+    h.org_port = org_port;
+    h.length = len;
+    h.org_ip = org_ip;
+    h.msg_id = msgid;
     return h;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void fillPongBody(struct P2P_pong_B_packet * p) {
-	// TODO For now we assume no neighours
+void fillPongBody(struct P2P_pong_B_packet * p, int peer_from) {
 	memset(&p->body, 0, sizeof p->body);
+	
+	int allocated = 0;
+	
+	int i = 0;
+	for (i = 0; i < MAX_PEERS && allocated < 5; ++i) {
+		if (sockets[i] != -1 && i != peer_from) {
+			p->body.entries[allocated].ip = peers[i].ip;
+			p->body.entries[allocated].port = peers[i].port;
+		}
+	}
+	
 	// Set header length!
 	p->header.length = htons(4); // For now, because it is empty.
 }
 
 void processPongBodyToNetwork(struct P2P_pong_B_packet * p) {
 	p->body.front.entry_size = htons(p->body.front.entry_size);
-	p->body.e1.ip = htonl(p->body.e1.ip);
-	p->body.e2.ip = htonl(p->body.e2.ip);
-	p->body.e3.ip = htonl(p->body.e3.ip);
-	p->body.e4.ip = htonl(p->body.e4.ip);
-	p->body.e5.ip = htonl(p->body.e5.ip);
-	p->body.e1.port = htons(p->body.e1.port);
-	p->body.e2.port = htons(p->body.e2.port);
-	p->body.e3.port = htons(p->body.e3.port);
-	p->body.e4.port = htons(p->body.e4.port);
-	p->body.e5.port = htons(p->body.e5.port);
+	int i = 0;
+	for (i = 0; i < 5; i++) {
+		p->body.entries[i].ip = htonl(p->body.entries[i].ip);
+		p->body.entries[i].port = htons(p->body.entries[i].port);
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -292,10 +345,10 @@ struct P2P_pong_A_packet createPongPacket_A(uint32_t msgid) {
     return p;
 }
 
-struct P2P_pong_B_packet createPongPacket_B(uint32_t msgid) {
+struct P2P_pong_B_packet createPongPacket_B(uint32_t msgid, int peer_to) {
     struct P2P_pong_B_packet p;
     p.header = getHeader(my_ip, my_port, MAX_TTL, MSG_PONG, msgid, NO_BODY);
-    fillPongBody(&p);
+    fillPongBody(&p, peer_to);
     processPongBodyToNetwork(&p);
     return p;
 }

@@ -22,7 +22,7 @@ void processPacket(int socket, struct P2P_h header, int id) {
 			} else {
 				debug_message_from("PING:B",id);
 				//Reply with PONG:B
-				struct P2P_pong_B_packet reply = createPongPacket_B(header.msg_id);
+				struct P2P_pong_B_packet reply = createPongPacket_B(header.msg_id, id);
 				bytes_sent = send(socket, (void *)&reply, sizeof reply, 0);
 				debug_message_to("PONG:B", id);
 				//print_header_to_network(&reply.header);
@@ -82,8 +82,10 @@ void processPacket(int socket, struct P2P_h header, int id) {
 			struct P2P_query_hit_packet qhit;
 			qhit.header = header;
 			bytes_recv = recv(socket, (void *)&qhit.body, header.length, 0);
+			process_from_network(&qhit.header);
 			processQHitbody(&qhit);
 			print_qhit(&qhit);
+			markQueryHit(&qhit);
 			break;
 		default:
 			printf("!!! Unknown packet header:\n");
@@ -156,7 +158,7 @@ void *listenConnections() {
 				sockets[new_id] = new_socket;
 				peers[new_id].status = PEER_JOIN_PENDING;
 				peers[new_id].missed_pings = 0;
-				strcpy(peers[new_id].stringip, ipstr);
+				strcpy(&peers[new_id].stringip[0], &ipstr[0]);
 			} else {
 				debug_message_to("Closed connection", -1);
 				close(new_socket);
